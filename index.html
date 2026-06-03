@@ -407,6 +407,26 @@ function buildProd(stage,col){
 }
 buildProd(0,PCOLS[0]);
 
+function buildProdDamaged(stage,col){
+  buildProd(stage,col);
+  // Tilt whole product
+  prod.rotation.z=0.08;
+  prod.rotation.x=0.04;
+  // Bend/dent one side panel (child index ~3 = first lateral wall if stage>=1)
+  const meshes=prod.children.filter(c=>c.isMesh);
+  if(meshes.length>3){ meshes[3].rotation.z=0.25; meshes[3].position.y-=0.06; meshes[3].scale.y=0.82; }
+  if(meshes.length>4){ meshes[4].position.x+=0.04; }
+  // Top cover cracked open (if exists)
+  const top=meshes.find(m=>Math.abs(m.position.y-0.355)<0.01);
+  if(top){ top.rotation.z=0.12; top.position.y+=0.04; top.position.x-=0.06; }
+  // Red damage mark
+  const dmg=B(0.55,0.007,0.007,new THREE.MeshStandardMaterial({color:0xff2200,emissive:0xff1100,emissiveIntensity:2,roughness:0.1}));
+  dmg.rotation.z=0.4; dmg.position.set(0.05,0.38,0.1); prod.add(dmg);
+  const dmg2=B(0.3,0.007,0.007,new THREE.MeshStandardMaterial({color:0xff2200,emissive:0xff1100,emissiveIntensity:2,roughness:0.1}));
+  dmg2.rotation.z=-0.3; dmg2.position.set(0.12,0.38,-0.05); prod.add(dmg2);
+  pLight.color.set(0xff3b3b);
+}
+
 // Parts scale-in animations: [{meshes:[], prog:0}]
 const partAnims=[];
 
@@ -497,8 +517,15 @@ function buildInside(mi){
     insG.add(me);
   });
   // Floor: separate dark matte material so it doesn't create bright band
+  const flTex2=tex(256,256,(ctx,W,H)=>{
+    ctx.fillStyle='#0a1820'; ctx.fillRect(0,0,W,H);
+    ctx.strokeStyle='rgba(0,180,200,0.12)'; ctx.lineWidth=1;
+    for(let i=0;i<=W;i+=32){ctx.beginPath();ctx.moveTo(i,0);ctx.lineTo(i,H);ctx.stroke();}
+    for(let j=0;j<=H;j+=32){ctx.beginPath();ctx.moveTo(0,j);ctx.lineTo(W,j);ctx.stroke();}
+  });
+  flTex2.wrapS=flTex2.wrapT=THREE.RepeatWrapping; flTex2.repeat.set(3,3);
   const floorMesh=new THREE.Mesh(new THREE.PlaneGeometry(W2,D2),
-    new THREE.MeshStandardMaterial({color:0x050c12,roughness:1,metalness:0,side:THREE.FrontSide}));
+    new THREE.MeshStandardMaterial({map:flTex2,roughness:0.95,metalness:0,side:THREE.FrontSide}));
   floorMesh.rotation.x=Math.PI/2; floorMesh.position.set(CX,-0.45,CZ_W); insG.add(floorMesh);
 
   [-1.5,0,1.5].forEach(ox=>{
@@ -746,7 +773,7 @@ function exitM(idx){
   pState='exiting'; exT=0; hideScan(); insG.visible=false;
   showExterior();
   const def=MDEFS[idx];
-  if(machObjs[idx].status==='error'){ buildProd(prodStage,0xff3b3b); pLight.color.set(0xff3b3b); addLog('error',idx,'Pieza RETENIDA · '+def.name); }
+  if(machObjs[idx].status==='error'){ buildProdDamaged(prodStage,0xff3b3b); addLog('error',idx,'Pieza RETENIDA · '+def.name); }
   else{ buildProd(Math.min(idx+1,4),prodCol); addLog('ok',idx,'Pieza OK · '+def.name); }
   setLbl('◀ SALIENDO · '+def.id,'#00b4cc');
   fadeOut();
@@ -899,7 +926,7 @@ function trigErr(idx,auto){ machObjs[idx].status='error'; alts++; document.getEl
 function trigWrn(idx,auto){ if(machObjs[idx].status==='error') return; machObjs[idx].status='warn'; if(!auto) addLog('warn',idx,'ALERTA · '+MDEFS[idx].name); }
 function injectError(){ const c=machObjs.map((_,i)=>i).filter(i=>machObjs[i].status==='ok'); if(!c.length)return; trigErr(c[Math.floor(Math.random()*c.length)],false); }
 function injectWarn(){ const c=machObjs.map((_,i)=>i).filter(i=>machObjs[i].status==='ok'); if(!c.length)return; trigWrn(c[Math.floor(Math.random()*c.length)],false); }
-function clearAll(){ machObjs.forEach((mo,i)=>{ mo.status='ok'; mo.vals=[...MDEFS[i].metrics.map(m=>m.b)]; }); buildProd(prodStage,PCOLS[pci]); addLog('ok',-1,'Sistema restaurado'); updPB(); }
+function clearAll(){ machObjs.forEach((mo,i)=>{ mo.status='ok'; mo.vals=[...MDEFS[i].metrics.map(m=>m.b)]; }); buildProd(prodStage,PCOLS[pci]); prod.rotation.set(0,0,0); addLog('ok',-1,'Sistema restaurado'); updPB(); }
 function addLog(type,idx,msg){ const t2=new Date().toLocaleTimeString('es-MX',{hour12:false}); const cl=type==='ok'?'tok':type==='warn'?'tw':'ter'; const tks=document.getElementById('tks'); const s=document.createElement('span'); s.className='ti'; s.innerHTML=`<span class="tc">${t2}</span><span class="${cl}">${msg}</span>`; tks.prepend(s); if(tks.children.length>18) tks.lastChild.remove(); }
 
 setInterval(()=>{ if(!running)return; if(Math.random()<.1) injectWarn(); if(Math.random()<.05) injectError(); },10000);
