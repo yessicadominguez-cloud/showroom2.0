@@ -556,10 +556,10 @@ function buildInside(mi){
     const wtMat=new THREE.MeshStandardMaterial({color:0xffffff,emissive:0xffaa00,emissiveIntensity:5,roughness:0.05});
     const wt=S(0.05,wtMat); wt.position.y=-1.25; wt.name='wt';
     seg2.add(s2,cone,wt); la.add(s1,j1,seg2);
-    // Swapped X: la on right (+1.0), ra on left (-1.0) → elbows bend inward toward product
-    la.position.set(CX+1.0,CY+H2/2-0.3,CZ_W-0.4);
+    // Lower mount so tips actually reach product at CY=1.5
+    la.position.set(CX+1.0,CY+0.85,CZ_W-0.4);
     insG.add(la); iRefs.la=la;
-    const ra=la.clone(); ra.name='ra'; ra.position.set(CX-1.0,CY+H2/2-0.3,CZ_W-0.4); ra.scale.x=-1;
+    const ra=la.clone(); ra.name='ra'; ra.position.set(CX-1.0,CY+0.85,CZ_W-0.4); ra.scale.x=-1;
     insG.add(ra); iRefs.ra=ra;
     const rail=B(W2-0.3,0.1,0.15,M(0x1a3045,0,0.4,0.7)); rail.position.set(CX,CY+H2/2-0.25,CZ_W-0.4); insG.add(rail);
     const sN=100, spkG=new THREE.BufferGeometry();
@@ -842,16 +842,16 @@ function animate(){
       // Arms idle: slightly inward+forward. Working: converge on product
       const lp2=(a,b,x)=>a+(b-a)*x;
       if(la){
-        la.rotation.z=lp2(.28*Math.sin(t*1.3*spd),   0.42+wv, reach);
-        la.rotation.x=lp2(.12*Math.sin(t*.9*spd+.5), 0.48+wv*0.5, reach);
+        la.rotation.z=lp2(.22*Math.sin(t*1.1*spd),   0.55+wv, reach);
+        la.rotation.x=lp2(.10*Math.sin(t*.8*spd+.5), 0.38+wv*0.5, reach);
         const sg=la.children[2];
-        if(sg) sg.rotation.z=lp2(-.42-.38*Math.abs(Math.sin(t*1.3*spd)), -0.8+wv, reach);
+        if(sg) sg.rotation.z=lp2(-.35-.2*Math.abs(Math.sin(t*1.1*spd)), -1.05+wv, reach);
       }
       if(ra){
-        ra.rotation.z=lp2(-.28*Math.sin(t*1.3*spd+1),  -0.42-wv, reach);
-        ra.rotation.x=lp2(.12*Math.sin(t*.9*spd+1.5), 0.48+wv*0.5, reach);
+        ra.rotation.z=lp2(-.22*Math.sin(t*1.1*spd+1),  -0.55-wv, reach);
+        ra.rotation.x=lp2(.10*Math.sin(t*.8*spd+1.5), 0.38+wv*0.5, reach);
         const sg=ra.children[2];
-        if(sg) sg.rotation.z=lp2(-.42-.38*Math.abs(Math.sin(t*1.3*spd+1)), -0.8+wv, reach);
+        if(sg) sg.rotation.z=lp2(-.35-.2*Math.abs(Math.sin(t*1.1*spd+1)), -1.05+wv, reach);
       }
       if(iRefs.la){const wt=iRefs.la.getObjectByName('wt');if(wt)wt.material.emissiveIntensity=1.5+placing?16+8*Math.abs(Math.sin(t*18)):2*Math.abs(Math.sin(t*3));}
       const sp=iRefs.sparks;
@@ -864,9 +864,12 @@ function animate(){
       if(inT===q*4) addProdAssemblyStep(4,def.col);
 
       for(let i=partAnims.length-1;i>=0;i--){
-        const pa=partAnims[i]; pa.prog=Math.min(1,pa.prog+0.09);
-        const s=pa.prog<0.6?pa.prog/0.6:1;
+        const pa=partAnims[i]; pa.prog=Math.min(1,pa.prog+0.035);
+        // ease-out scale: fast start, slow finish
+        const s=1-Math.pow(1-pa.prog,3);
         pa.meshes.forEach(m=>m.scale.setScalar(s));
+        // flash weld light for first 0.3 of animation
+        if(pa.prog<0.3&&iRefs.wl) iRefs.wl.intensity=18*(1-pa.prog/0.3);
         if(pa.prog>=1){pa.meshes.forEach(m=>m.scale.setScalar(1));partAnims.splice(i,1);}
       }
     }
