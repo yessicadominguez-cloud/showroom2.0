@@ -371,10 +371,6 @@ function buildInside(mi){
 
   const al=new THREE.PointLight(ac,2.5,8); al.position.set(CX,CY,CZ_W); iRefs.al=al; insG.add(al);
 
-  const fc=B(W2-0.2,0.1,1.2,M(0x0e1e2e,0,0.65,0.5)); fc.position.set(CX,CY-H2/2+0.05,CZ_W+0.3); insG.add(fc);
-  for(let sx=-2.3;sx<=2.3;sx+=0.45){
-    const fs=B(0.04,0.12,1.22,M(0x1a3045,0,0.4,0.5)); fs.position.set(CX+sx,CY-H2/2+0.06,CZ_W+0.3); insG.add(fs);
-  }
 
   if(def.type==='assembly'){
     const la=new THREE.Group(); la.name='la';
