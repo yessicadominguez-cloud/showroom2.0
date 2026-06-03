@@ -658,8 +658,8 @@ function camFollow(px){ return [new THREE.Vector3(px-3.5,2.6,BZ+6.5), new THREE.
 // Inside camera: inside the machine, at eye level, looking deep
 function camInside(mx){
   const CZ_W=BZ-6.2;
-  // Camera just past the aperture, at eye height, looking toward back wall
-  return [new THREE.Vector3(mx,1.35,BZ-2.8), new THREE.Vector3(mx,1.0,CZ_W)];
+  // Camera placed well inside the chamber (past the front wall at BZ-4.1)
+  return [new THREE.Vector3(mx,1.35,BZ-4.6), new THREE.Vector3(mx,1.0,CZ_W-0.5)];
 }
 
 // Init: instant set to starting position
@@ -750,7 +750,8 @@ function animate(){
     // Product moves through aperture: from belt Z toward chamber center Z
     prod.position.set(mx-0.6+prog*0.7, 0.4, BZ-prog*(BZ-CZ_W)*0.7);
     prod.rotation.y+=0.03*spd; pLight.position.copy(prod.position);
-    const [ip,il]=camInside(mx); tPos.copy(ip); tLook.copy(il);
+    // Keep follow camera during entering so no split-view glitch through the aperture
+    const [fp2,fl2]=camFollow(px); tPos.copy(fp2); tLook.copy(fl2);
     if(enT>=T_EN){ prod.position.set(mx,CY_W(mx),BZ-4.7); startIn(curM); }
 
   } else if(pState==='inside'){
