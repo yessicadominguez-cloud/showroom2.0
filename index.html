@@ -546,20 +546,21 @@ function buildInside(mi){
 
 
   if(def.type==='assembly'){
+    // Short arms — base at ceiling, tips reach product at CY≈1.5
     const la=new THREE.Group(); la.name='la';
-    const s1=C(0.07,0.085,1.5,M(0x1a2d3f,0,0.3,0.85)); s1.position.y=-0.75;
-    const j1=S(0.12,M(0x243d54,0,0.2,0.9)); j1.position.y=-1.5;
-    const seg2=new THREE.Group(); seg2.position.y=-1.5; seg2.name='seg2';
-    const s2=C(0.055,0.07,1.0,M(0x1a2d3f,0,0.3,0.85)); s2.position.y=-0.5;
-    const cone=new THREE.Mesh(new THREE.ConeGeometry(0.09,0.3,8),M(0x243d54,0,0.2,0.9));
-    cone.position.y=-1.05; cone.rotation.z=Math.PI;
+    const s1=C(0.07,0.085,0.85,M(0x1a2d3f,0,0.3,0.85)); s1.position.y=-0.425;
+    const j1=S(0.11,M(0x243d54,0,0.2,0.9)); j1.position.y=-0.85;
+    const seg2=new THREE.Group(); seg2.position.y=-0.85; seg2.name='seg2';
+    const s2=C(0.055,0.07,0.75,M(0x1a2d3f,0,0.3,0.85)); s2.position.y=-0.375;
+    const cone=new THREE.Mesh(new THREE.ConeGeometry(0.08,0.22,8),M(0x243d54,0,0.2,0.9));
+    cone.position.y=-0.81; cone.rotation.z=Math.PI;
     const wtMat=new THREE.MeshStandardMaterial({color:0xffffff,emissive:0xffaa00,emissiveIntensity:5,roughness:0.05});
-    const wt=S(0.05,wtMat); wt.position.y=-1.25; wt.name='wt';
+    const wt=S(0.05,wtMat); wt.position.y=-0.94; wt.name='wt';
     seg2.add(s2,cone,wt); la.add(s1,j1,seg2);
-    // Lower mount so tips actually reach product at CY=1.5
-    la.position.set(CX+1.0,CY+0.85,CZ_W-0.4);
+    // Ceiling mount — total arm length ~1.6 → tips reach CY=1.5 from base at CY+H2/2-0.3=2.9
+    la.position.set(CX+1.0,CY+H2/2-0.3,CZ_W-0.4);
     insG.add(la); iRefs.la=la;
-    const ra=la.clone(); ra.name='ra'; ra.position.set(CX-1.0,CY+0.85,CZ_W-0.4); ra.scale.x=-1;
+    const ra=la.clone(); ra.name='ra'; ra.position.set(CX-1.0,CY+H2/2-0.3,CZ_W-0.4); ra.scale.x=-1;
     insG.add(ra); iRefs.ra=ra;
     const rail=B(W2-0.3,0.1,0.15,M(0x1a3045,0,0.4,0.7)); rail.position.set(CX,CY+H2/2-0.25,CZ_W-0.4); insG.add(rail);
     const sN=100, spkG=new THREE.BufferGeometry();
@@ -842,16 +843,16 @@ function animate(){
       // Arms idle: slightly inward+forward. Working: converge on product
       const lp2=(a,b,x)=>a+(b-a)*x;
       if(la){
-        la.rotation.z=lp2(.22*Math.sin(t*1.1*spd),   0.55+wv, reach);
-        la.rotation.x=lp2(.10*Math.sin(t*.8*spd+.5), 0.38+wv*0.5, reach);
+        la.rotation.z=lp2(-.12-.08*Math.sin(t*0.9*spd), -0.28+wv, reach);
+        la.rotation.x=lp2( .08*Math.sin(t*0.7*spd+1),   0.22+wv*0.5, reach);
         const sg=la.children[2];
-        if(sg) sg.rotation.z=lp2(-.35-.2*Math.abs(Math.sin(t*1.1*spd)), -1.05+wv, reach);
+        if(sg) sg.rotation.z=lp2(-.25-.12*Math.abs(Math.sin(t*0.9*spd)), -0.72+wv, reach);
       }
       if(ra){
-        ra.rotation.z=lp2(-.22*Math.sin(t*1.1*spd+1),  -0.55-wv, reach);
-        ra.rotation.x=lp2(.10*Math.sin(t*.8*spd+1.5), 0.38+wv*0.5, reach);
+        ra.rotation.z=lp2(-.12-.08*Math.sin(t*0.9*spd+1.2), -0.28+wv, reach);
+        ra.rotation.x=lp2( .08*Math.sin(t*0.7*spd+2.2),      0.22+wv*0.5, reach);
         const sg=ra.children[2];
-        if(sg) sg.rotation.z=lp2(-.35-.2*Math.abs(Math.sin(t*1.1*spd+1)), -1.05+wv, reach);
+        if(sg) sg.rotation.z=lp2(-.25-.12*Math.abs(Math.sin(t*0.9*spd+1.2)), -0.72+wv, reach);
       }
       if(iRefs.la){const wt=iRefs.la.getObjectByName('wt');if(wt)wt.material.emissiveIntensity=1.5+placing?16+8*Math.abs(Math.sin(t*18)):2*Math.abs(Math.sin(t*3));}
       const sp=iRefs.sparks;
