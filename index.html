@@ -550,7 +550,7 @@ const tPos=new THREE.Vector3(), tLook=new THREE.Vector3();
 function camFollow(px){ return [new THREE.Vector3(px-3.5,2.6,BZ+6.5), new THREE.Vector3(px+2,0.4,BZ)]; }
 function camInside(mx){
   const CZ_W=BZ-6.2;
-  return [new THREE.Vector3(mx,1.35,BZ-2.0), new THREE.Vector3(mx,1.0,CZ_W)];
+  return [new THREE.Vector3(mx,1.35,BZ-3.2), new THREE.Vector3(mx,1.0,CZ_W)];
 }
 
 const initP=new THREE.Vector3(-BL/2-0.5,2.6,BZ+6.5);
@@ -638,7 +638,7 @@ function animate(){
     const CZ_W=BZ-6.2, cy=CY_W(mx);
     prod.position.set(mx,cy+0.07*Math.sin(t*2.5),CZ_W+0.3);
     prod.rotation.y+=0.03*spd; pLight.position.copy(prod.position); px=mx;
-    tPos.set(mx+0.12*Math.sin(t*.22),1.35+0.05*Math.sin(t*.18),BZ-2.0);
+    tPos.set(mx+0.12*Math.sin(t*.22),1.35+0.05*Math.sin(t*.18),BZ-3.2);
     tLook.set(mx,cy,CZ_W);
 
     if(def.type==='assembly'){
