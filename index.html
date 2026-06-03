@@ -588,18 +588,11 @@ function enterM(idx){
   curM=idx; pState='entering'; enT=0;
   const def=MDEFS[idx]; showPanel(idx); updPB();
   setLbl('▶ ENTRANDO · '+def.id+' '+def.name,hexS(def.col));
-  // Build interior hidden — camera stays exterior during entry animation
-  buildInside(idx); insG.visible=false;
+  fadeIn(()=>{ buildInside(idx); fadeOut(); });
 }
 function startIn(idx){
-  // Fade cut when cube is fully inside, then show interior
-  fadeIn(()=>{
-    pState='inside'; inT=0;
-    insG.visible=true; hideExterior();
-    showScan(idx);
-    const def=MDEFS[idx]; setLbl('◈ INTERIOR · '+def.id+' '+def.name,hexS(def.col));
-    fadeOut();
-  });
+  pState='inside'; inT=0; showScan(idx);
+  const def=MDEFS[idx]; setLbl('◈ INTERIOR · '+def.id+' '+def.name,hexS(def.col));
 }
 function exitM(idx){
   fadeIn(()=>{
@@ -640,7 +633,7 @@ function animate(){
     const mx=MDEFS[curM].x, CZ_W=BZ-6.2;
     prod.position.set(mx-0.6+prog*0.7, 0.4, BZ-prog*(BZ-CZ_W)*0.7);
     prod.rotation.y+=0.03*spd; pLight.position.copy(prod.position);
-    const [fp2,fl2]=camFollow(px); tPos.copy(fp2); tLook.copy(fl2);
+    const [ip,il]=camInside(mx); tPos.copy(ip); tLook.copy(il);
     if(enT>=T_EN){ prod.position.set(mx,CY_W(mx),BZ-4.7); startIn(curM); }
 
   } else if(pState==='inside'){
