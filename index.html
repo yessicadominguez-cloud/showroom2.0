@@ -407,34 +407,40 @@ function buildProd(stage,col){
 }
 buildProd(0,PCOLS[0]);
 
-// Add one assembly step to prod group (called progressively inside M1)
+// Parts scale-in animations: [{meshes:[], prog:0}]
+const partAnims=[];
+
+// Add one assembly step — parts start at scale 0 and grow
 function addProdAssemblyStep(step,col){
   const eMat=()=>M(0x0e1e2c,0,0.4,0.75);
   const acMat=()=>new THREE.MeshStandardMaterial({color:col,emissive:col,emissiveIntensity:0.7,roughness:0.1});
-  if(step===1){ // lateral walls
+  const newParts=[];
+  const add=(mesh)=>{ mesh.scale.set(0.01,0.01,0.01); prod.add(mesh); newParts.push(mesh); };
+  if(step===1){
     [[0.04,0.3,0.64,-0.42,0.185,0],[0.04,0.3,0.64,0.42,0.185,0]].forEach(([w,h,d,x,y,z])=>{
-      const p=B(w,h,d,eMat()); p.position.set(x,y,z); prod.add(p);
+      const p=B(w,h,d,eMat()); p.position.set(x,y,z); add(p);
     });
   }
-  if(step===2){ // front/back walls
+  if(step===2){
     [[0.88,0.3,0.04,0,0.185,-0.31],[0.88,0.3,0.04,0,0.185,0.31]].forEach(([w,h,d,x,y,z])=>{
-      const p=B(w,h,d,eMat()); p.position.set(x,y,z); prod.add(p);
+      const p=B(w,h,d,eMat()); p.position.set(x,y,z); add(p);
     });
   }
-  if(step===3){ // top cover + accent stripe
-    const top=B(0.88,0.04,0.64,M(0x0a1620,0,0.4,0.85)); top.position.y=0.355; prod.add(top);
-    const stripe=B(0.9,0.018,0.66,acMat()); stripe.position.y=0.377; prod.add(stripe);
+  if(step===3){
+    const top=B(0.88,0.04,0.64,M(0x0a1620,0,0.4,0.85)); top.position.y=0.355; add(top);
+    const stripe=B(0.9,0.018,0.66,acMat()); stripe.position.y=0.377; add(stripe);
   }
-  if(step===4){ // connectors + vents
+  if(step===4){
     [-0.22,0.22].forEach(x=>{
-      const cn=B(0.07,0.055,0.055,M(0x223344,0,0.2,0.95)); cn.position.set(x,0.165,-0.315); prod.add(cn);
-      const ci=B(0.045,0.035,0.01,new THREE.MeshStandardMaterial({color:col,emissive:col,emissiveIntensity:0.6})); ci.position.set(x,0.165,-0.343); prod.add(ci);
+      const cn=B(0.07,0.055,0.055,M(0x223344,0,0.2,0.95)); cn.position.set(x,0.165,-0.315); add(cn);
+      const ci=B(0.045,0.035,0.01,new THREE.MeshStandardMaterial({color:col,emissive:col,emissiveIntensity:0.6})); ci.position.set(x,0.165,-0.343); add(ci);
     });
     [-0.1,0,0.1].forEach(z=>{
-      const v=B(0.01,0.04,0.02,M(0x0a1420,0,0.6,0.3)); v.position.set(0.425,0.22,z); prod.add(v);
-      const v2=v.clone(); v2.position.x=-0.425; prod.add(v2);
+      const v=B(0.01,0.04,0.02,M(0x0a1420,0,0.6,0.3)); v.position.set(0.425,0.22,z); add(v);
+      const v2=v.clone(); v2.position.x=-0.425; add(v2);
     });
   }
+  if(newParts.length) partAnims.push({meshes:newParts,prog:0});
 }
 
 const trail=[];
@@ -493,7 +499,7 @@ function buildInside(mi){
   // Floor: separate dark matte material so it doesn't create bright band
   const floorMesh=new THREE.Mesh(new THREE.PlaneGeometry(W2,D2),
     new THREE.MeshStandardMaterial({color:0x050c12,roughness:1,metalness:0,side:THREE.FrontSide}));
-  floorMesh.rotation.x=Math.PI/2; floorMesh.position.set(CX,CY-H2/2,CZ_W); insG.add(floorMesh);
+  floorMesh.rotation.x=Math.PI/2; floorMesh.position.set(CX,-0.45,CZ_W); insG.add(floorMesh);
 
   [-1.5,0,1.5].forEach(ox=>{
     const sl=B(0.14,0.04,D2-0.3,new THREE.MeshStandardMaterial({color:ac,emissive:ac,emissiveIntensity:0.7,roughness:0.1}));
@@ -793,34 +799,42 @@ function animate(){
       const totalT=Math.floor(T_IN/spd), q=Math.floor(totalT/5);
       const steps=[q,q*2,q*3,q*4];
       const nextStep=steps.find(s=>s>inT);
-      const dist=nextStep!=null ? nextStep-inT : 999;
-      const AW=22; // approach window frames
-      const ap=dist<AW ? 1-(dist/AW) : 0; // 0=idle, 1=fully reaching
-      const lp=(x,a,b)=>a*(1-x)+b*x; // lerp helper
+      const dist=nextStep!=null?nextStep-inT:999;
+      const DW=14, UW=10; // dip-down window, pull-up window
+      // dip: arm goes DOWN as dist approaches 0, pulls up after placement
+      const sinceStep=steps.reduce((acc,s)=>inT>=s?inT-s:acc,-1);
+      const dipDown=dist<DW?dist/DW:1; // 0=fully dipped, 1=up
+      const pullUp=sinceStep>=0&&sinceStep<UW?sinceStep/UW:1;
+      const dip=Math.min(dipDown,pullUp); // 0=dipped
 
       if(la){
-        la.rotation.z=lp(ap, .28*Math.sin(t*1.3*spd),  0.4);
-        la.rotation.x=lp(ap, .12*Math.sin(t*.9*spd+.5), 0.5);
-        const sg=la.children[2];
-        if(sg) sg.rotation.z=lp(ap, -.42-.38*Math.abs(Math.sin(t*1.3*spd)), -0.7);
+        la.rotation.z=.28*Math.sin(t*1.3*spd);
+        la.rotation.x=.12*Math.sin(t*.9*spd+.5)+(1-dip)*0.55;
+        const sg=la.children[2]; if(sg) sg.rotation.z=-.42-.38*Math.abs(Math.sin(t*1.3*spd));
       }
       if(ra){
-        ra.rotation.z=lp(ap, -.28*Math.sin(t*1.3*spd+1), -0.4);
-        ra.rotation.x=lp(ap, .12*Math.sin(t*.9*spd+1.5),  0.5);
-        const sg=ra.children[2];
-        if(sg) sg.rotation.z=lp(ap, -.42-.38*Math.abs(Math.sin(t*1.3*spd+1)), -0.7);
+        ra.rotation.z=-.28*Math.sin(t*1.3*spd+1);
+        ra.rotation.x=.12*Math.sin(t*.9*spd+1.5)+(1-dip)*0.55;
+        const sg=ra.children[2]; if(sg) sg.rotation.z=-.42-.38*Math.abs(Math.sin(t*1.3*spd+1));
       }
-      // Weld tip glows bright when arms reach product
-      if(iRefs.la){ const wt=iRefs.la.getObjectByName('wt'); if(wt) wt.material.emissiveIntensity=2+7*Math.abs(Math.sin(t*10*spd))+ap*18; }
+      const placing=dip<0.5;
+      if(iRefs.la){const wt=iRefs.la.getObjectByName('wt');if(wt)wt.material.emissiveIntensity=2+7*Math.abs(Math.sin(t*10*spd))+(placing?20:0);}
       const sp=iRefs.sparks;
-      if(sp&&fn%2===0){ const p2=sp.geometry.attributes.position.array; for(let i=0;i<p2.length/3;i++){if(Math.random()<(.18+ap*.4)){p2[i*3]=mx+(Math.random()-.5)*.7;p2[i*3+1]=CZ_W-H2_inner()/2+.1+Math.random()*.35;p2[i*3+2]=CZ_W+(Math.random()-.5)*.5;}} sp.geometry.attributes.position.needsUpdate=true; sp.material.opacity=.7+.3*Math.abs(Math.sin(t*12)); }
-      if(iRefs.wl) iRefs.wl.intensity=(2+8*Math.abs(Math.sin(t*14*spd))*Math.random())*(1+ap*4);
+      if(sp&&fn%2===0){const p2=sp.geometry.attributes.position.array;for(let i=0;i<p2.length/3;i++){if(Math.random()<(placing?.55:.12)){p2[i*3]=mx+(Math.random()-.5)*.5;p2[i*3+1]=CY-H2_inner()/2+.05+Math.random()*.5;p2[i*3+2]=CZ_W-0.6+(Math.random()-.5)*.4;}}sp.geometry.attributes.position.needsUpdate=true;sp.material.opacity=placing?1:.6;}
+      if(iRefs.wl)iRefs.wl.intensity=(2+8*Math.abs(Math.sin(t*14*spd))*Math.random())*(placing?6:1);
 
-      // Part appears exactly when arms "touch" — at step frame
       if(inT===q)   addProdAssemblyStep(1,def.col);
       if(inT===q*2) addProdAssemblyStep(2,def.col);
       if(inT===q*3) addProdAssemblyStep(3,def.col);
       if(inT===q*4) addProdAssemblyStep(4,def.col);
+
+      // Animate scale-in for newly added parts
+      for(let i=partAnims.length-1;i>=0;i--){
+        const pa=partAnims[i]; pa.prog=Math.min(1,pa.prog+0.08);
+        const s=pa.prog<0.5?pa.prog*2:1+(1-pa.prog)*0.1;
+        pa.meshes.forEach(m=>m.scale.setScalar(Math.min(s,1)));
+        if(pa.prog>=1){pa.meshes.forEach(m=>m.scale.setScalar(1));partAnims.splice(i,1);}
+      }
     }
     if(def.type==='vision'){
       if(iRefs.lp){ iRefs.lp.position.y=CZ_W_floor(mx)+.1+1.4*(((t*1.3*spd)%1)); iRefs.lp.material.opacity=.5+.35*Math.abs(Math.sin(t*1.3*spd)); }
