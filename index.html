@@ -407,6 +407,36 @@ function buildProd(stage,col){
 }
 buildProd(0,PCOLS[0]);
 
+// Add one assembly step to prod group (called progressively inside M1)
+function addProdAssemblyStep(step,col){
+  const eMat=()=>M(0x0e1e2c,0,0.4,0.75);
+  const acMat=()=>new THREE.MeshStandardMaterial({color:col,emissive:col,emissiveIntensity:0.7,roughness:0.1});
+  if(step===1){ // lateral walls
+    [[0.04,0.3,0.64,-0.42,0.185,0],[0.04,0.3,0.64,0.42,0.185,0]].forEach(([w,h,d,x,y,z])=>{
+      const p=B(w,h,d,eMat()); p.position.set(x,y,z); prod.add(p);
+    });
+  }
+  if(step===2){ // front/back walls
+    [[0.88,0.3,0.04,0,0.185,-0.31],[0.88,0.3,0.04,0,0.185,0.31]].forEach(([w,h,d,x,y,z])=>{
+      const p=B(w,h,d,eMat()); p.position.set(x,y,z); prod.add(p);
+    });
+  }
+  if(step===3){ // top cover + accent stripe
+    const top=B(0.88,0.04,0.64,M(0x0a1620,0,0.4,0.85)); top.position.y=0.355; prod.add(top);
+    const stripe=B(0.9,0.018,0.66,acMat()); stripe.position.y=0.377; prod.add(stripe);
+  }
+  if(step===4){ // connectors + vents
+    [-0.22,0.22].forEach(x=>{
+      const cn=B(0.07,0.055,0.055,M(0x223344,0,0.2,0.95)); cn.position.set(x,0.165,-0.315); prod.add(cn);
+      const ci=B(0.045,0.035,0.01,new THREE.MeshStandardMaterial({color:col,emissive:col,emissiveIntensity:0.6})); ci.position.set(x,0.165,-0.343); prod.add(ci);
+    });
+    [-0.1,0,0.1].forEach(z=>{
+      const v=B(0.01,0.04,0.02,M(0x0a1420,0,0.6,0.3)); v.position.set(0.425,0.22,z); prod.add(v);
+      const v2=v.clone(); v2.position.x=-0.425; prod.add(v2);
+    });
+  }
+}
+
 const trail=[];
 for(let i=0;i<18;i++){ const t2=new THREE.Mesh(new THREE.SphereGeometry(0.055,4,4),new THREE.MeshBasicMaterial({color:0x00e5ff,transparent:true,opacity:0})); scene.add(t2); trail.push({m:t2,l:0,ml:0}); }
 let tri=0;
@@ -762,6 +792,12 @@ function animate(){
       const sp=iRefs.sparks;
       if(sp&&fn%2===0){ const p2=sp.geometry.attributes.position.array; for(let i=0;i<p2.length/3;i++){if(Math.random()<.18){p2[i*3]=mx+(Math.random()-.5)*.7;p2[i*3+1]=CZ_W-H2_inner()/2+.1+Math.random()*.35;p2[i*3+2]=CZ_W+(Math.random()-.5)*.5;}} sp.geometry.attributes.position.needsUpdate=true; sp.material.opacity=.7+.3*Math.abs(Math.sin(t*12)); }
       if(iRefs.wl) iRefs.wl.intensity=2+8*Math.abs(Math.sin(t*14*spd))*Math.random();
+      // Progressive assembly: add parts at 4 evenly-spaced moments
+      const totalT=Math.floor(T_IN/spd), q=Math.floor(totalT/5);
+      if(inT===q)   addProdAssemblyStep(1,def.col);
+      if(inT===q*2) addProdAssemblyStep(2,def.col);
+      if(inT===q*3) addProdAssemblyStep(3,def.col);
+      if(inT===q*4) addProdAssemblyStep(4,def.col);
     }
     if(def.type==='vision'){
       if(iRefs.lp){ iRefs.lp.position.y=CZ_W_floor(mx)+.1+1.4*(((t*1.3*spd)%1)); iRefs.lp.material.opacity=.5+.35*Math.abs(Math.sin(t*1.3*spd)); }
