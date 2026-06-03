@@ -306,7 +306,7 @@ function buildProd(stage,col){
   prodStage=stage; prodCol=col;
   while(prod.children.length){const c=prod.children[0];if(c.geometry)c.geometry.dispose();prod.remove(c);}
   pLight.color.set(col);
-  const dc=0x0c1a26, mc=M(dc,0,0.35,0.8);
+  const dc=0x0c1a26;
 
   // ── STAGE 0+: bare chassis ──
   const base=B(0.88,0.07,0.64,M(dc,0,0.3,0.85)); base.castShadow=true; prod.add(base);
