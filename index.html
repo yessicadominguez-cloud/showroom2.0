@@ -490,6 +490,10 @@ function buildInside(mi){
     if(w.ry) me.rotation.y=w.ry; if(w.rx) me.rotation.x=w.rx;
     insG.add(me);
   });
+  // Floor: separate dark matte material so it doesn't create bright band
+  const floorMesh=new THREE.Mesh(new THREE.PlaneGeometry(W2,D2),
+    new THREE.MeshStandardMaterial({color:0x050c12,roughness:1,metalness:0,side:THREE.FrontSide}));
+  floorMesh.rotation.x=Math.PI/2; floorMesh.position.set(CX,CY-H2/2,CZ_W); insG.add(floorMesh);
 
   [-1.5,0,1.5].forEach(ox=>{
     const sl=B(0.14,0.04,D2-0.3,new THREE.MeshStandardMaterial({color:ac,emissive:ac,emissiveIntensity:0.7,roughness:0.1}));
