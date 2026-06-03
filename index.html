@@ -80,6 +80,7 @@ body{background:#000;overflow:hidden;height:100vh;font-family:'Share Tech Mono',
 </head>
 <body>
 <canvas id="c"></canvas>
+<div id="fade" style="position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;transition:opacity 0.35s;z-index:999"></div>
 <div id="ui">
   <div id="htop">
     <div class="logo">NC TECH <small>SHOWROOM 2026 · SIMULACIÓN 3D</small></div>
@@ -583,23 +584,30 @@ function newProd(){
   showExterior();
   setLbl('● CONVEYOR — SIGUIENTE PIEZA','#00e5ff');
 }
+const fadeEl=document.getElementById('fade');
+function fadeIn(cb){ fadeEl.style.opacity=1; setTimeout(cb,350); }
+function fadeOut(){ setTimeout(()=>fadeEl.style.opacity=0,60); }
+
 function enterM(idx){
   curM=idx; pState='entering'; enT=0;
   const def=MDEFS[idx]; showPanel(idx); updPB();
   setLbl('▶ ENTRANDO · '+def.id+' '+def.name,hexS(def.col));
-  buildInside(idx);
+  fadeIn(()=>{ buildInside(idx); fadeOut(); });
 }
 function startIn(idx){
   pState='inside'; inT=0; showScan(idx);
   const def=MDEFS[idx]; setLbl('◈ INTERIOR · '+def.id+' '+def.name,hexS(def.col));
 }
 function exitM(idx){
+  fadeIn(()=>{
   pState='exiting'; exT=0; hideScan(); insG.visible=false;
   showExterior();
   const def=MDEFS[idx];
   if(machObjs[idx].status==='error'){ pMat.color.set(0xff3b3b); pMat.emissive.set(0x330000); pLight.color.set(0xff3b3b); addLog('error',idx,'Pieza RETENIDA · '+def.name); }
   else addLog('ok',idx,'Pieza OK · '+def.name);
   setLbl('◀ SALIENDO · '+def.id,'#00b4cc');
+  fadeOut();
+  });
 }
 
 let fluT=0;
