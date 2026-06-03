@@ -785,15 +785,34 @@ function animate(){
     tLook.set(mx,1.5,CZ_W-0.3);
 
     if(def.type==='assembly'){
-      const la=iRefs.la,ra=iRefs.ra;
-      if(la){ la.rotation.z=.28*Math.sin(t*1.3*spd); la.rotation.x=.12*Math.sin(t*.9*spd+.5); const sg=la.children[2]; if(sg) sg.rotation.z=-.42-.38*Math.abs(Math.sin(t*1.3*spd)); }
-      if(ra){ ra.rotation.z=-.28*Math.sin(t*1.3*spd+1); ra.rotation.x=.12*Math.sin(t*.9*spd+1.5); const sg=ra.children[2]; if(sg) sg.rotation.z=-.42-.38*Math.abs(Math.sin(t*1.3*spd+1)); }
-      if(iRefs.la){ const wt=iRefs.la.getObjectByName('wt'); if(wt) wt.material.emissiveIntensity=2+7*Math.abs(Math.sin(t*10*spd)); }
-      const sp=iRefs.sparks;
-      if(sp&&fn%2===0){ const p2=sp.geometry.attributes.position.array; for(let i=0;i<p2.length/3;i++){if(Math.random()<.18){p2[i*3]=mx+(Math.random()-.5)*.7;p2[i*3+1]=CZ_W-H2_inner()/2+.1+Math.random()*.35;p2[i*3+2]=CZ_W+(Math.random()-.5)*.5;}} sp.geometry.attributes.position.needsUpdate=true; sp.material.opacity=.7+.3*Math.abs(Math.sin(t*12)); }
-      if(iRefs.wl) iRefs.wl.intensity=2+8*Math.abs(Math.sin(t*14*spd))*Math.random();
-      // Progressive assembly: add parts at 4 evenly-spaced moments
+      const la=iRefs.la, ra=iRefs.ra;
       const totalT=Math.floor(T_IN/spd), q=Math.floor(totalT/5);
+      const steps=[q,q*2,q*3,q*4];
+      const nextStep=steps.find(s=>s>inT);
+      const dist=nextStep!=null ? nextStep-inT : 999;
+      const AW=22; // approach window frames
+      const ap=dist<AW ? 1-(dist/AW) : 0; // 0=idle, 1=fully reaching
+      const lp=(x,a,b)=>a*(1-x)+b*x; // lerp helper
+
+      if(la){
+        la.rotation.z=lp(ap, .28*Math.sin(t*1.3*spd),  0.4);
+        la.rotation.x=lp(ap, .12*Math.sin(t*.9*spd+.5), 0.5);
+        const sg=la.children[2];
+        if(sg) sg.rotation.z=lp(ap, -.42-.38*Math.abs(Math.sin(t*1.3*spd)), -0.7);
+      }
+      if(ra){
+        ra.rotation.z=lp(ap, -.28*Math.sin(t*1.3*spd+1), -0.4);
+        ra.rotation.x=lp(ap, .12*Math.sin(t*.9*spd+1.5),  0.5);
+        const sg=ra.children[2];
+        if(sg) sg.rotation.z=lp(ap, -.42-.38*Math.abs(Math.sin(t*1.3*spd+1)), -0.7);
+      }
+      // Weld tip glows bright when arms reach product
+      if(iRefs.la){ const wt=iRefs.la.getObjectByName('wt'); if(wt) wt.material.emissiveIntensity=2+7*Math.abs(Math.sin(t*10*spd))+ap*18; }
+      const sp=iRefs.sparks;
+      if(sp&&fn%2===0){ const p2=sp.geometry.attributes.position.array; for(let i=0;i<p2.length/3;i++){if(Math.random()<(.18+ap*.4)){p2[i*3]=mx+(Math.random()-.5)*.7;p2[i*3+1]=CZ_W-H2_inner()/2+.1+Math.random()*.35;p2[i*3+2]=CZ_W+(Math.random()-.5)*.5;}} sp.geometry.attributes.position.needsUpdate=true; sp.material.opacity=.7+.3*Math.abs(Math.sin(t*12)); }
+      if(iRefs.wl) iRefs.wl.intensity=(2+8*Math.abs(Math.sin(t*14*spd))*Math.random())*(1+ap*4);
+
+      // Part appears exactly when arms "touch" — at step frame
       if(inT===q)   addProdAssemblyStep(1,def.col);
       if(inT===q*2) addProdAssemblyStep(2,def.col);
       if(inT===q*3) addProdAssemblyStep(3,def.col);
