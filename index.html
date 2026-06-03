@@ -344,7 +344,6 @@ function buildInside(mi){
     {w:D2,h:H2,px:CX-W2/2,py:CY, pz:CZ_W, ry:Math.PI/2},
     {w:D2,h:H2,px:CX+W2/2,py:CY, pz:CZ_W, ry:-Math.PI/2},
     {w:W2,h:D2,px:CX,    py:CY+H2/2, pz:CZ_W, rx:-Math.PI/2},
-    {w:W2,h:D2,px:CX,    py:CY-H2/2, pz:CZ_W, rx:Math.PI/2},
   ];
   wDefs.forEach(w=>{
     const wm=new THREE.MeshStandardMaterial({map:wTex.clone(),color:def.ic,roughness:0.85,side:THREE.FrontSide});
