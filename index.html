@@ -296,10 +296,116 @@ MDEFS.forEach((def,idx)=>{
 });
 
 const PCOLS=[0x00e5ff,0x00ff88,0xffb300,0xff66aa,0xaa44ff];
-let pci=0;
-const pMat=M(0x00e5ff,0x003344,0.2,0.5);
-const prod=B(0.8,0.8,0.8,pMat); prod.position.set(-BL/2,0.4,BZ); scene.add(prod);
+let pci=0, prodStage=0, prodCol=PCOLS[0];
+
+// Product group — assembled progressively through machines
+const prod=new THREE.Group(); prod.position.set(-BL/2,0.4,BZ); scene.add(prod);
 const pLight=new THREE.PointLight(0x00e5ff,3.5,4.5); pLight.position.copy(prod.position); scene.add(pLight);
+
+function buildProd(stage,col){
+  prodStage=stage; prodCol=col;
+  while(prod.children.length){const c=prod.children[0];if(c.geometry)c.geometry.dispose();prod.remove(c);}
+  pLight.color.set(col);
+  const dc=0x0c1a26, mc=M(dc,0,0.35,0.8);
+
+  // ── STAGE 0+: bare chassis ──
+  const base=B(0.88,0.07,0.64,M(dc,0,0.3,0.85)); base.castShadow=true; prod.add(base);
+  [[-0.37,-0.27],[-0.37,0.27],[0.37,-0.27],[0.37,0.27]].forEach(([x,z])=>{
+    const post=new THREE.Mesh(new THREE.CylinderGeometry(0.025,0.025,0.28,6),M(0x1a3045,0,0.3,0.9));
+    post.position.set(x,0.175,z); post.castShadow=true; prod.add(post);
+  });
+  // bottom rails
+  [[-0.3,0],[0.3,0]].forEach(([x,z])=>{
+    const r=B(0.88,0.03,0.06,M(0x1e3a50,0,0.4,0.8)); r.position.set(x,0.055,z); prod.add(r);
+  });
+
+  if(stage<1){
+    // accent glow edge on raw chassis
+    const gl=B(0.9,0.01,0.66,new THREE.MeshStandardMaterial({color:col,emissive:col,emissiveIntensity:0.5,roughness:0.1}));
+    gl.position.y=0.038; prod.add(gl);
+    return;
+  }
+
+  // ── STAGE 1+: full enclosure (M1 assembled) ──
+  const eMat=M(0x0e1e2c,0,0.4,0.75);
+  [[0.88,0.3,0.04,0,0.185,-0.31],[0.88,0.3,0.04,0,0.185,0.31],
+   [0.04,0.3,0.64,-0.42,0.185,0],[0.04,0.3,0.64,0.42,0.185,0]
+  ].forEach(([w,h,d,x,y,z])=>{ const p=B(w,h,d,eMat.clone()); p.position.set(x,y,z); p.castShadow=true; prod.add(p); });
+  // top cover
+  const top=B(0.88,0.04,0.64,M(0x0a1620,0,0.4,0.85)); top.position.y=0.355; top.castShadow=true; prod.add(top);
+  // accent stripe top
+  const stripe=B(0.9,0.018,0.66,new THREE.MeshStandardMaterial({color:col,emissive:col,emissiveIntensity:0.7,roughness:0.1}));
+  stripe.position.y=0.377; prod.add(stripe);
+  // front connectors
+  [-0.22,0.22].forEach(x=>{
+    const cn=B(0.07,0.055,0.055,M(0x223344,0,0.2,0.95)); cn.position.set(x,0.165,-0.315); prod.add(cn);
+    const ci=B(0.045,0.035,0.01,new THREE.MeshStandardMaterial({color:col,emissive:col,emissiveIntensity:0.5})); ci.position.set(x,0.165,-0.343); prod.add(ci);
+  });
+  // side vents
+  [-0.1,0,0.1].forEach(z=>{
+    const v=B(0.01,0.04,0.02,M(0x0a1420,0,0.6,0.3)); v.position.set(0.425,0.22,z); prod.add(v);
+    const v2=v.clone(); v2.position.x=-0.425; prod.add(v2);
+  });
+
+  if(stage<2){ return; }
+
+  // ── STAGE 2+: PCB visible / Vision IA scanned ──
+  const pcb=B(0.72,0.018,0.52,new THREE.MeshStandardMaterial({color:0x00240f,emissive:0x001008,roughness:0.7,metalness:0.1}));
+  pcb.position.y=0.19; prod.add(pcb);
+  // PCB traces
+  [[0.12,0,-0.06],[-0.08,0,0.1],[0.2,0,0.05]].forEach(([x,y,z])=>{
+    const tr=B(0.18,0.006,0.012,new THREE.MeshStandardMaterial({color:col,emissive:col,emissiveIntensity:1.0}));
+    tr.position.set(x,0.2+y,z); prod.add(tr);
+  });
+  // main chip
+  const chip=B(0.13,0.025,0.1,M(0x080808,0,0.5,0.2)); chip.position.set(-0.1,0.207,0); prod.add(chip);
+  const chipDot=B(0.02,0.005,0.02,new THREE.MeshStandardMaterial({color:0xffffff,emissive:0xffffff,emissiveIntensity:0.5}));
+  chipDot.position.set(-0.15,0.22,0.035); prod.add(chipDot);
+  // scan mark line
+  const scan=B(0.86,0.003,0.003,new THREE.MeshStandardMaterial({color:col,emissive:col,emissiveIntensity:1.5,transparent:true,opacity:0.7}));
+  scan.position.y=0.38; prod.add(scan);
+
+  if(stage<3){ return; }
+
+  // ── STAGE 3+: QR label + serial (M3 trazabilidad) ──
+  const qrTex=tex(64,64,(ctx,W,H)=>{
+    ctx.fillStyle='#f0f0f0'; ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='#111';
+    // finder patterns
+    [[0,0],[0,44],[44,0]].forEach(([r,c])=>{
+      ctx.fillRect(c+2,r+2,18,18); ctx.fillStyle='#f0f0f0'; ctx.fillRect(c+5,r+5,12,12);
+      ctx.fillStyle='#111'; ctx.fillRect(c+8,r+8,6,6); ctx.fillStyle='#111';
+    });
+    // data dots
+    for(let i=0;i<80;i++){const x=20+Math.floor(Math.random()*28),y=Math.floor(Math.random()*60);ctx.fillRect(x,y,3,3);}
+  });
+  const qr=new THREE.Mesh(new THREE.PlaneGeometry(0.22,0.22),new THREE.MeshBasicMaterial({map:qrTex}));
+  qr.rotation.x=-Math.PI/2; qr.position.set(0.22,0.379,0.1); prod.add(qr);
+  // serial plate
+  const snTex=tex(128,28,(ctx,W,H)=>{
+    ctx.fillStyle='#c8dde8'; ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='#000'; ctx.font='bold 9px monospace'; ctx.fillText('SN·2026·'+((prodStage*137+pci*37+4821)%9000+1000),4,20);
+  });
+  const sn=new THREE.Mesh(new THREE.PlaneGeometry(0.24,0.055),new THREE.MeshBasicMaterial({map:snTex}));
+  sn.position.set(-0.16,0.2,-0.322); prod.add(sn);
+
+  if(stage<4){ return; }
+
+  // ── STAGE 4: approved / Variables complete ──
+  const ledMat=new THREE.MeshStandardMaterial({color:0x00ff88,emissive:0x00ff88,emissiveIntensity:4,roughness:0.05});
+  const led=new THREE.Mesh(new THREE.SphereGeometry(0.038,10,10),ledMat);
+  led.position.set(0.33,0.382,0.24); prod.add(led);
+  const ledG=new THREE.PointLight(0x00ff88,2,0.5); ledG.position.copy(led.position); prod.add(ledG);
+  const apTex=tex(128,48,(ctx,W,H)=>{
+    ctx.fillStyle='rgba(0,255,136,0.12)'; ctx.fillRect(0,0,W,H);
+    ctx.strokeStyle='#00ff88'; ctx.lineWidth=1.5; ctx.strokeRect(1,1,W-2,H-2);
+    ctx.fillStyle='#00ff88'; ctx.font='bold 10px monospace'; ctx.textAlign='center';
+    ctx.fillText('✓ APROBADO',W/2,30);
+  });
+  const ap=new THREE.Mesh(new THREE.PlaneGeometry(0.32,0.12),new THREE.MeshBasicMaterial({map:apTex,transparent:true}));
+  ap.rotation.x=-Math.PI/2; ap.position.set(-0.1,0.38,0); prod.add(ap);
+}
+buildProd(0,PCOLS[0]);
 
 const trail=[];
 for(let i=0;i<18;i++){ const t2=new THREE.Mesh(new THREE.SphereGeometry(0.055,4,4),new THREE.MeshBasicMaterial({color:0x00e5ff,transparent:true,opacity:0})); scene.add(t2); trail.push({m:t2,l:0,ml:0}); }
@@ -574,8 +680,8 @@ function updPB(){ MDEFS.forEach((d,i)=>{ const dot=document.getElementById('pbd'
 
 function newProd(){
   pci=(pci+1)%PCOLS.length; const c=PCOLS[pci];
-  pMat.color.set(c); pMat.emissive.set(c); pMat.emissive.multiplyScalar(0.15); pLight.color.set(c);
-  px=BSTART; prod.position.set(px,0.4,BZ); pState='belt'; curM=-1;
+  buildProd(0,c);
+  px=BSTART; prod.position.set(px,0.4,BZ); prod.rotation.set(0,0,0); pState='belt'; curM=-1;
   hidePanel(); hideScan(); insG.visible=false;
   showExterior();
   setLbl('● CONVEYOR — SIGUIENTE PIEZA','#00e5ff');
@@ -600,8 +706,8 @@ function exitM(idx){
   pState='exiting'; exT=0; hideScan(); insG.visible=false;
   showExterior();
   const def=MDEFS[idx];
-  if(machObjs[idx].status==='error'){ pMat.color.set(0xff3b3b); pMat.emissive.set(0x330000); pLight.color.set(0xff3b3b); addLog('error',idx,'Pieza RETENIDA · '+def.name); }
-  else addLog('ok',idx,'Pieza OK · '+def.name);
+  if(machObjs[idx].status==='error'){ buildProd(prodStage,0xff3b3b); pLight.color.set(0xff3b3b); addLog('error',idx,'Pieza RETENIDA · '+def.name); }
+  else{ buildProd(Math.min(idx+1,4),prodCol); addLog('ok',idx,'Pieza OK · '+def.name); }
   setLbl('◀ SALIENDO · '+def.id,'#00b4cc');
   fadeOut();
   });
@@ -623,7 +729,7 @@ function animate(){
   if(pState==='belt'){
     px+=bs; prod.position.set(px,0.4+0.022*Math.sin(t*5),BZ);
     prod.rotation.y+=0.025*spd; pLight.position.copy(prod.position);
-    if(fn%4===0){ const tr=trail[trI%trail.length]; tr.m.position.copy(prod.position); tr.m.position.y-=0.14; tr.m.material.color.set(PCOLS[pci]); tr.m.material.opacity=0.5; tr.l=1; tr.ml=18; trI++; }
+    if(fn%4===0){ const tr=trail[trI%trail.length]; tr.m.position.copy(prod.position); tr.m.position.y-=0.14; tr.m.material.color.set(prodCol); tr.m.material.opacity=0.5; tr.l=1; tr.ml=18; trI++; }
     const [fp,fl]=camFollow(px); tPos.copy(fp); tLook.copy(fl);
     const nxt=curM+1;
     if(nxt<MDEFS.length&&px>=MXS[nxt]-0.8) enterM(nxt);
@@ -679,7 +785,7 @@ function animate(){
       for(let i=0;i<8;i++){ const dc=iRefs['dc'+i]; if(dc){ const a=dc.userData.a+t*.75*spd,r=dc.userData.r; dc.position.set(mx+Math.cos(a)*r,CZ_W_floor(mx)+.35+.28*Math.sin(a*1.3),cz_prod+Math.sin(a)*r*.55); dc.rotation.y=t*2; dc.rotation.x=t*1.3; } }
     }
 
-    if(mo.status==='error'){ const bl=Math.sin(t*10)>0; pMat.color.set(bl?0xff3b3b:0x660000); pMat.emissive.set(bl?0x220000:0x000000); }
+    if(mo.status==='error'){ const bl=Math.sin(t*10)>0; prod.traverse(c=>{if(c.isMesh&&c.material&&c.material.color){c.material.color.set(bl?0xff3b3b:0x660000);if(c.material.emissive)c.material.emissive.set(bl?0x220000:0x000000);}}); }
     if(inT>=T_IN/spd) exitM(curM);
 
   } else if(pState==='exiting'){
@@ -720,7 +826,7 @@ function trigErr(idx,auto){ machObjs[idx].status='error'; alts++; document.getEl
 function trigWrn(idx,auto){ if(machObjs[idx].status==='error') return; machObjs[idx].status='warn'; if(!auto) addLog('warn',idx,'ALERTA · '+MDEFS[idx].name); }
 function injectError(){ const c=machObjs.map((_,i)=>i).filter(i=>machObjs[i].status==='ok'); if(!c.length)return; trigErr(c[Math.floor(Math.random()*c.length)],false); }
 function injectWarn(){ const c=machObjs.map((_,i)=>i).filter(i=>machObjs[i].status==='ok'); if(!c.length)return; trigWrn(c[Math.floor(Math.random()*c.length)],false); }
-function clearAll(){ machObjs.forEach((mo,i)=>{ mo.status='ok'; mo.vals=[...MDEFS[i].metrics.map(m=>m.b)]; }); pMat.color.set(PCOLS[pci]); pMat.emissive.set(PCOLS[pci]); pMat.emissive.multiplyScalar(.12); addLog('ok',-1,'Sistema restaurado'); updPB(); }
+function clearAll(){ machObjs.forEach((mo,i)=>{ mo.status='ok'; mo.vals=[...MDEFS[i].metrics.map(m=>m.b)]; }); buildProd(prodStage,PCOLS[pci]); addLog('ok',-1,'Sistema restaurado'); updPB(); }
 function addLog(type,idx,msg){ const t2=new Date().toLocaleTimeString('es-MX',{hour12:false}); const cl=type==='ok'?'tok':type==='warn'?'tw':'ter'; const tks=document.getElementById('tks'); const s=document.createElement('span'); s.className='ti'; s.innerHTML=`<span class="tc">${t2}</span><span class="${cl}">${msg}</span>`; tks.prepend(s); if(tks.children.length>18) tks.lastChild.remove(); }
 
 setInterval(()=>{ if(!running)return; if(Math.random()<.1) injectWarn(); if(Math.random()<.05) injectError(); },10000);
