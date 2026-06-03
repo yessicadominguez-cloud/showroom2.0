@@ -432,35 +432,31 @@ const partAnims=[];
 
 // Add one assembly step — parts start at scale 0 and grow
 function addProdAssemblyStep(step,col){
-  const eMat=()=>M(0x0e1e2c,0,0.4,0.75);
-  const acMat=()=>new THREE.MeshStandardMaterial({color:col,emissive:col,emissiveIntensity:0.7,roughness:0.1});
+  // Parts glow bright on spawn, fade to normal — very visible placement
+  const glowMat=()=>new THREE.MeshStandardMaterial({color:col,emissive:col,emissiveIntensity:2.5,roughness:0.15,metalness:0.3});
   const newParts=[];
   const add=(mesh)=>{ mesh.scale.set(0.01,0.01,0.01); prod.add(mesh); newParts.push(mesh); };
-  if(step===1){
-    [[0.04,0.3,0.64,-0.42,0.185,0],[0.04,0.3,0.64,0.42,0.185,0]].forEach(([w,h,d,x,y,z])=>{
-      const p=B(w,h,d,eMat()); p.position.set(x,y,z); add(p);
+  if(step===1){ // lateral walls — thicker so visible
+    [[-0.41,0.185,0],[0.41,0.185,0]].forEach(([x,y,z])=>{
+      const p=B(0.09,0.32,0.66,glowMat()); p.position.set(x,y,z); add(p);
     });
   }
-  if(step===2){
-    [[0.88,0.3,0.04,0,0.185,-0.31],[0.88,0.3,0.04,0,0.185,0.31]].forEach(([w,h,d,x,y,z])=>{
-      const p=B(w,h,d,eMat()); p.position.set(x,y,z); add(p);
+  if(step===2){ // front/back walls
+    [[0,0.185,-0.30],[0,0.185,0.30]].forEach(([x,y,z])=>{
+      const p=B(0.90,0.32,0.09,glowMat()); p.position.set(x,y,z); add(p);
     });
   }
-  if(step===3){
-    const top=B(0.88,0.04,0.64,M(0x0a1620,0,0.4,0.85)); top.position.y=0.355; add(top);
-    const stripe=B(0.9,0.018,0.66,acMat()); stripe.position.y=0.377; add(stripe);
+  if(step===3){ // top cover
+    const top=B(0.92,0.06,0.68,glowMat()); top.position.y=0.355; add(top);
   }
-  if(step===4){
+  if(step===4){ // accent stripe + connectors
+    const stripe=B(0.94,0.025,0.70,new THREE.MeshStandardMaterial({color:col,emissive:col,emissiveIntensity:3.0,roughness:0.05}));
+    stripe.position.y=0.388; add(stripe);
     [-0.22,0.22].forEach(x=>{
-      const cn=B(0.07,0.055,0.055,M(0x223344,0,0.2,0.95)); cn.position.set(x,0.165,-0.315); add(cn);
-      const ci=B(0.045,0.035,0.01,new THREE.MeshStandardMaterial({color:col,emissive:col,emissiveIntensity:0.6})); ci.position.set(x,0.165,-0.343); add(ci);
-    });
-    [-0.1,0,0.1].forEach(z=>{
-      const v=B(0.01,0.04,0.02,M(0x0a1420,0,0.6,0.3)); v.position.set(0.425,0.22,z); add(v);
-      const v2=v.clone(); v2.position.x=-0.425; add(v2);
+      const cn=B(0.08,0.06,0.06,glowMat()); cn.position.set(x,0.165,-0.315); add(cn);
     });
   }
-  if(newParts.length) partAnims.push({meshes:newParts,prog:0});
+  if(newParts.length) partAnims.push({meshes:newParts,prog:0,col,mats:newParts.map(m=>m.material)});
 }
 
 const trail=[];
@@ -859,7 +855,7 @@ function animate(){
       }
       if(iRefs.la){const wt=iRefs.la.getObjectByName('wt');if(wt)wt.material.emissiveIntensity=1.5+placing?16+8*Math.abs(Math.sin(t*18)):2*Math.abs(Math.sin(t*3));}
       const sp=iRefs.sparks;
-      if(sp&&fn%2===0){const p2=sp.geometry.attributes.position.array;for(let i=0;i<p2.length/3;i++){if(Math.random()<(placing?.5:.06)){p2[i*3]=mx+(Math.random()-.5)*.5;p2[i*3+1]=CY-H2_inner()/2+.08+Math.random()*.45;p2[i*3+2]=CZ_W-0.6+(Math.random()-.5)*.35;}}sp.geometry.attributes.position.needsUpdate=true;sp.material.opacity=placing?.95:.4;}
+      if(sp&&fn%2===0){const p2=sp.geometry.attributes.position.array;for(let i=0;i<p2.length/3;i++){if(Math.random()<(placing?.5:.06)){p2[i*3]=mx+(Math.random()-.5)*.5;p2[i*3+1]=cy+Math.random()*.35;p2[i*3+2]=CZ_W-0.6+(Math.random()-.5)*.35;}}sp.geometry.attributes.position.needsUpdate=true;sp.material.opacity=placing?.95:.4;}
       if(iRefs.wl)iRefs.wl.intensity=placing?4+10*Math.abs(Math.sin(t*18))*Math.random():0.5;
 
       if(inT===q)   addProdAssemblyStep(1,def.col);
@@ -869,12 +865,15 @@ function animate(){
 
       for(let i=partAnims.length-1;i>=0;i--){
         const pa=partAnims[i]; pa.prog=Math.min(1,pa.prog+0.018);
-        // ease-out scale: fast start, slow finish
-        const s=1-Math.pow(1-pa.prog,3);
-        pa.meshes.forEach(m=>m.scale.setScalar(s));
-        // flash weld light for first 0.3 of animation
-        if(pa.prog<0.3&&iRefs.wl) iRefs.wl.intensity=18*(1-pa.prog/0.3);
-        if(pa.prog>=1){pa.meshes.forEach(m=>m.scale.setScalar(1));partAnims.splice(i,1);}
+        const s=1-Math.pow(1-pa.prog,3); // ease-out grow
+        pa.meshes.forEach(m=>{
+          m.scale.setScalar(s);
+          // Emissive fades from 2.5 → 0.3 as part grows in
+          if(m.material&&m.material.emissiveIntensity!==undefined)
+            m.material.emissiveIntensity=Math.max(0.3, 2.5*(1-pa.prog));
+        });
+        if(pa.prog<0.4&&iRefs.wl) iRefs.wl.intensity=20*(1-pa.prog/0.4);
+        if(pa.prog>=1){pa.meshes.forEach(m=>{m.scale.setScalar(1);if(m.material)m.material.emissiveIntensity=0.3;});partAnims.splice(i,1);}
       }
     }
     if(def.type==='vision'){
