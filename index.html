@@ -80,7 +80,7 @@ body{background:#000;overflow:hidden;height:100vh;font-family:'Share Tech Mono',
 </head>
 <body>
 <canvas id="c"></canvas>
-<div id="fade" style="position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;transition:opacity 0.35s;z-index:999"></div>
+<div id="fade" style="position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;transition:opacity 0.18s;z-index:999"></div>
 <div id="ui">
   <div id="htop">
     <div class="logo">NC TECH <small>SHOWROOM 2026 · SIMULACIÓN 3D</small></div>
@@ -547,7 +547,7 @@ const tPos=new THREE.Vector3(), tLook=new THREE.Vector3();
 function camFollow(px){ return [new THREE.Vector3(px-3.5,2.6,BZ+6.5), new THREE.Vector3(px+2,0.4,BZ)]; }
 function camInside(mx){
   const CZ_W=BZ-6.2;
-  return [new THREE.Vector3(mx,1.9,BZ-3.5), new THREE.Vector3(mx,1.9,CZ_W)];
+  return [new THREE.Vector3(mx,1.9,BZ-3.5), new THREE.Vector3(mx,1.5,CZ_W)];
 }
 
 const initP=new THREE.Vector3(-BL/2-0.5,2.6,BZ+6.5);
@@ -559,7 +559,7 @@ const MXS=MDEFS.map(d=>d.x);
 const BSTART=-BL/2, BEND=BL/2+2;
 let px=BSTART, pState='belt', curM=-1;
 let inT=0, enT=0, exT=0;
-const T_EN=60, T_IN=220, T_EX=45;
+const T_EN=25, T_IN=220, T_EX=45;
 let pcs=0, alts=0, running=true, spd=1, fn=0, trI=0;
 let lblTO=null;
 function setLbl(txt,col){ const e=document.getElementById('lbl'); e.style.color=col||'#00b4cc'; e.textContent=txt; e.classList.remove('fade'); clearTimeout(lblTO); lblTO=setTimeout(()=>e.classList.add('fade'),3000); }
@@ -581,7 +581,7 @@ function newProd(){
   setLbl('● CONVEYOR — SIGUIENTE PIEZA','#00e5ff');
 }
 const fadeEl=document.getElementById('fade');
-function fadeIn(cb){ fadeEl.style.opacity=1; setTimeout(cb,350); }
+function fadeIn(cb){ fadeEl.style.opacity=1; setTimeout(cb,180); }
 function fadeOut(){ setTimeout(()=>fadeEl.style.opacity=0,60); }
 
 function enterM(idx){
@@ -640,10 +640,10 @@ function animate(){
     inT++;
     const def=MDEFS[curM], mx=def.x, mo=machObjs[curM];
     const CZ_W=BZ-6.2, cy=CY_W(mx);
-    prod.position.set(mx,cy+0.07*Math.sin(t*2.5),CZ_W+0.3);
+    prod.position.set(mx,cy+0.07*Math.sin(t*2.5),CZ_W-0.6);
     prod.rotation.y+=0.03*spd; pLight.position.copy(prod.position); px=mx;
     tPos.set(mx+0.12*Math.sin(t*.22),1.9+0.05*Math.sin(t*.18),BZ-3.5);
-    tLook.set(mx,1.9,CZ_W);
+    tLook.set(mx,1.5,CZ_W-0.3);
 
     if(def.type==='assembly'){
       const la=iRefs.la,ra=iRefs.ra;
