@@ -734,7 +734,7 @@ const MXS=MDEFS.map(d=>d.x);
 const BSTART=-BL/2, BEND=BL/2+2;
 let px=BSTART, pState='belt', curM=-1;
 let inT=0, enT=0, exT=0;
-const T_EN=25, T_IN=220, T_EX=45;
+const T_EN=25, T_IN=320, T_EX=45;
 let pcs=0, alts=0, running=true, spd=1, fn=0, trI=0;
 let lblTO=null;
 function setLbl(txt,col){ const e=document.getElementById('lbl'); e.style.color=col||'#00b4cc'; e.textContent=txt; e.classList.remove('fade'); clearTimeout(lblTO); lblTO=setTimeout(()=>e.classList.add('fade'),3000); }
@@ -821,8 +821,11 @@ function animate(){
     inT++;
     const def=MDEFS[curM], mx=def.x, mo=machObjs[curM];
     const CZ_W=BZ-6.2, cy=CY_W(mx);
-    prod.position.set(mx,cy+0.07*Math.sin(t*2.5),CZ_W-0.6);
-    prod.rotation.y+=0.03*spd; pLight.position.copy(prod.position); px=mx;
+    prod.position.set(mx,cy+0.04*Math.sin(t*1.8),CZ_W-0.6);
+    // Stop spinning during assembly so parts are visible; slow spin on other machines
+    if(def.type==='assembly') prod.rotation.y=0;
+    else prod.rotation.y+=0.018*spd;
+    pLight.position.copy(prod.position); px=mx;
     tPos.set(mx+0.12*Math.sin(t*.22),1.9+0.05*Math.sin(t*.18),BZ-3.5);
     tLook.set(mx,1.5,CZ_W-0.3);
 
@@ -865,7 +868,7 @@ function animate(){
       if(inT===q*4) addProdAssemblyStep(4,def.col);
 
       for(let i=partAnims.length-1;i>=0;i--){
-        const pa=partAnims[i]; pa.prog=Math.min(1,pa.prog+0.035);
+        const pa=partAnims[i]; pa.prog=Math.min(1,pa.prog+0.018);
         // ease-out scale: fast start, slow finish
         const s=1-Math.pow(1-pa.prog,3);
         pa.meshes.forEach(m=>m.scale.setScalar(s));
