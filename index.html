@@ -546,28 +546,22 @@ function buildInside(mi){
 
 
   if(def.type==='assembly'){
-    // Arms mounted on SIDE RAILS, extend UP and INWARD toward product
-    const mkArm=()=>{
-      const g=new THREE.Group();
-      const s1=C(0.07,0.085,1.2,M(0x1a2d3f,0,0.3,0.85)); s1.position.y=0.6;
-      const j1=S(0.12,M(0x243d54,0,0.2,0.9)); j1.position.y=1.2;
-      const seg2=new THREE.Group(); seg2.position.y=1.2; seg2.name='seg2';
-      const s2=C(0.055,0.07,0.9,M(0x1a2d3f,0,0.3,0.85)); s2.position.y=0.45;
-      const cone=new THREE.Mesh(new THREE.ConeGeometry(0.09,0.28,8),M(0x243d54,0,0.2,0.9));
-      cone.position.y=0.96;
-      const wtMat=new THREE.MeshStandardMaterial({color:0xffffff,emissive:0xffaa00,emissiveIntensity:5,roughness:0.05});
-      const wt=S(0.05,wtMat); wt.position.y=1.14; wt.name='wt';
-      seg2.add(s2,cone,wt); g.add(s1,j1,seg2);
-      return g;
-    };
-    const la=mkArm(); la.name='la';
-    la.position.set(CX-1.8,CY-H2/2+0.1,CZ_W-0.4);
+    const la=new THREE.Group(); la.name='la';
+    const s1=C(0.07,0.085,1.5,M(0x1a2d3f,0,0.3,0.85)); s1.position.y=-0.75;
+    const j1=S(0.12,M(0x243d54,0,0.2,0.9)); j1.position.y=-1.5;
+    const seg2=new THREE.Group(); seg2.position.y=-1.5; seg2.name='seg2';
+    const s2=C(0.055,0.07,1.0,M(0x1a2d3f,0,0.3,0.85)); s2.position.y=-0.5;
+    const cone=new THREE.Mesh(new THREE.ConeGeometry(0.09,0.3,8),M(0x243d54,0,0.2,0.9));
+    cone.position.y=-1.05; cone.rotation.z=Math.PI;
+    const wtMat=new THREE.MeshStandardMaterial({color:0xffffff,emissive:0xffaa00,emissiveIntensity:5,roughness:0.05});
+    const wt=S(0.05,wtMat); wt.position.y=-1.25; wt.name='wt';
+    seg2.add(s2,cone,wt); la.add(s1,j1,seg2);
+    // Swapped X: la on right (+1.0), ra on left (-1.0) → elbows bend inward toward product
+    la.position.set(CX+1.0,CY+H2/2-0.3,CZ_W-0.4);
     insG.add(la); iRefs.la=la;
-    const ra=mkArm(); ra.name='ra';
-    ra.position.set(CX+1.8,CY-H2/2+0.1,CZ_W-0.4); ra.scale.x=-1;
+    const ra=la.clone(); ra.name='ra'; ra.position.set(CX-1.0,CY+H2/2-0.3,CZ_W-0.4); ra.scale.x=-1;
     insG.add(ra); iRefs.ra=ra;
-    // Side base rails
-    const rail=B(W2-0.3,0.1,0.15,M(0x1a3045,0,0.4,0.7)); rail.position.set(CX,CY-H2/2+0.08,CZ_W-0.4); insG.add(rail);
+    const rail=B(W2-0.3,0.1,0.15,M(0x1a3045,0,0.4,0.7)); rail.position.set(CX,CY+H2/2-0.25,CZ_W-0.4); insG.add(rail);
     const sN=100, spkG=new THREE.BufferGeometry();
     const spkP=new Float32Array(sN*3), spkC=new Float32Array(sN*3);
     for(let i=0;i<sN;i++){
@@ -848,17 +842,16 @@ function animate(){
       // Arms idle: slightly inward+forward. Working: converge on product
       const lp2=(a,b,x)=>a+(b-a)*x;
       if(la){
-        // Idle: arm rests slightly inward. Working: rises and leans over product
-        la.rotation.z=lp2(0.25+0.05*Math.sin(t*0.6*spd),   0.55+wv, reach);
-        la.rotation.x=lp2(0.08+0.04*Math.sin(t*0.5*spd+1), 0.25+wv*0.5, reach);
+        la.rotation.z=lp2(.28*Math.sin(t*1.3*spd),   0.42+wv, reach);
+        la.rotation.x=lp2(.12*Math.sin(t*.9*spd+.5), 0.48+wv*0.5, reach);
         const sg=la.children[2];
-        if(sg) sg.rotation.z=lp2(0.18+0.06*Math.sin(t*0.6*spd), 0.55+wv, reach);
+        if(sg) sg.rotation.z=lp2(-.42-.38*Math.abs(Math.sin(t*1.3*spd)), -0.8+wv, reach);
       }
       if(ra){
-        ra.rotation.z=lp2(0.25+0.05*Math.sin(t*0.6*spd+1.2),  0.55+wv, reach);
-        ra.rotation.x=lp2(0.08+0.04*Math.sin(t*0.5*spd+2.2), 0.25+wv*0.5, reach);
+        ra.rotation.z=lp2(-.28*Math.sin(t*1.3*spd+1),  -0.42-wv, reach);
+        ra.rotation.x=lp2(.12*Math.sin(t*.9*spd+1.5), 0.48+wv*0.5, reach);
         const sg=ra.children[2];
-        if(sg) sg.rotation.z=lp2(0.18+0.06*Math.sin(t*0.6*spd+1.2), 0.55+wv, reach);
+        if(sg) sg.rotation.z=lp2(-.42-.38*Math.abs(Math.sin(t*1.3*spd+1)), -0.8+wv, reach);
       }
       if(iRefs.la){const wt=iRefs.la.getObjectByName('wt');if(wt)wt.material.emissiveIntensity=1.5+placing?16+8*Math.abs(Math.sin(t*18)):2*Math.abs(Math.sin(t*3));}
       const sp=iRefs.sparks;
