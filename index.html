@@ -659,7 +659,7 @@ function camFollow(px){ return [new THREE.Vector3(px-3.5,2.6,BZ+6.5), new THREE.
 function camInside(mx){
   const CZ_W=BZ-6.2;
   // Camera inside the chamber, horizontal look so floor stays out of frame
-  return [new THREE.Vector3(mx,2.0,BZ-4.7), new THREE.Vector3(mx,2.0,CZ_W)];
+  return [new THREE.Vector3(mx,2.0,BZ-4.4), new THREE.Vector3(mx,2.0,CZ_W)];
 }
 
 // Init: instant set to starting position
@@ -752,16 +752,16 @@ function animate(){
     prod.rotation.y+=0.03*spd; pLight.position.copy(prod.position);
     // Keep follow camera during entering so no split-view glitch through the aperture
     const [fp2,fl2]=camFollow(px); tPos.copy(fp2); tLook.copy(fl2);
-    if(enT>=T_EN){ prod.position.set(mx,CY_W(mx),BZ-4.7); startIn(curM); }
+    if(enT>=T_EN){ prod.position.set(mx,CY_W(mx),BZ-4.4); startIn(curM); }
 
   } else if(pState==='inside'){
     inT++;
     const def=MDEFS[curM], mx=def.x, mo=machObjs[curM];
     const CZ_W=BZ-6.2, cy=CY_W(mx);
-    prod.position.set(mx,cy+0.07*Math.sin(t*2.5),CZ_W+0.3);
+    prod.position.set(mx,cy+0.07*Math.sin(t*2.5),CZ_W-0.5);
     prod.rotation.y+=0.03*spd; pLight.position.copy(prod.position); px=mx;
     // Camera gentle sway
-    tPos.set(mx+0.12*Math.sin(t*.22),2.0+0.05*Math.sin(t*.18),BZ-4.7);
+    tPos.set(mx+0.12*Math.sin(t*.22),2.0+0.05*Math.sin(t*.18),BZ-4.4);
     tLook.set(mx,2.0,CZ_W);
 
     // ── Per-machine animations ──
@@ -804,7 +804,7 @@ function animate(){
   } else if(pState==='exiting'){
     exT++;
     const mx=MDEFS[curM].x, prog=exT/T_EX;
-    const CZ_W=BZ-6.2, startZ=BZ-4.7;
+    const CZ_W=BZ-6.2, startZ=BZ-4.4;
     prod.position.set(mx+bs*exT*.8, 0.4, startZ+prog*(BZ-startZ));
     pLight.position.copy(prod.position); px=prod.position.x;
     const [fp,fl]=camFollow(px); tPos.copy(fp); tLook.copy(fl);
